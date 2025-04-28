@@ -1,7 +1,7 @@
 <script setup>
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout.vue";
 import { Head } from "@inertiajs/vue3";
-import { ref, onMounted } from "vue";
+import { ref, onMounted, onBeforeUnmount, computed } from "vue";
 import { router } from "@inertiajs/vue3";
 import { useToast } from "vue-toastification";
 import "vue-toastification/dist/index.css";
@@ -12,6 +12,8 @@ import {
     DocumentMagnifyingGlassIcon,
 } from "@heroicons/vue/24/outline";
 import Modal from "@/Components/Modal.vue";
+import InfoButton from "@/Components/InfoButton.vue";
+import DangerButton from "@/Components/DangerButton.vue";
 
 // Define props
 const props = defineProps({
@@ -29,6 +31,23 @@ const tableKey = ref(0);
 // Modal state management
 const showDetailsModal = ref(false);
 const currentLog = ref(null);
+
+// Dark mode detection
+const isDarkMode = ref(false);
+
+// Update the isDarkMode value and re-render the table when dark mode changes
+const updateDarkModeState = () => {
+    if (typeof document !== "undefined") {
+        isDarkMode.value = document.documentElement.classList.contains("dark");
+        // Force table to re-render when theme changes
+        tableKey.value++;
+    }
+};
+
+// Compute table theme based on dark mode
+const tableTheme = computed(() => {
+    return isDarkMode.value ? "nocturnal" : "polar-bear";
+});
 
 // Table columns configuration
 const columns = [
@@ -91,10 +110,38 @@ const formatLogData = (logs) => {
     });
 };
 
-// Initialize table data
+// Set up MutationObserver to detect dark mode changes
+let observer;
 onMounted(() => {
+    // Set initial dark mode state
+    updateDarkModeState();
+
+    // Set up observer to watch for dark mode class changes
+    if (typeof document !== "undefined") {
+        observer = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+                if (mutation.attributeName === "class") {
+                    updateDarkModeState();
+                }
+            });
+        });
+
+        // Start observing the document root for class changes
+        observer.observe(document.documentElement, {
+            attributes: true,
+            attributeFilter: ["class"],
+        });
+    }
+
+    // Initialize table data
     tableData.value = formatLogData(props.logs);
-    toast.info("Activity Log loaded");
+});
+
+// Clean up observer when component is destroyed
+onBeforeUnmount(() => {
+    if (observer) {
+        observer.disconnect();
+    }
 });
 
 // Improved table refresh with key update for guaranteed re-render
@@ -106,7 +153,7 @@ const refreshTable = () => {
             tableData.value = formatLogData(page.props.logs);
             tableKey.value++; // Force table re-render
             loading.value = false;
-            toast.success("Activity log refreshed successfully!");
+            toast.info("Activity log is refreshed!");
         },
         onError: (errors) => {
             console.error("Error refreshing data:", errors);
@@ -144,34 +191,36 @@ const showLogDetails = (params) => {
 
     <AuthenticatedLayout>
         <template #header>
-            <h2 class="text-xl font-semibold leading-tight text-gray-800">
+            <h2
+                class="text-xl font-semibold leading-tight text-gray-800 dark:text-gray-200"
+            >
                 Activity Log
             </h2>
         </template>
 
         <div class="py-12">
             <div class="mx-auto max-w-7xl sm:px-6 lg:px-8">
-                <div class="overflow-hidden bg-white shadow-sm sm:rounded-lg">
+                <div
+                    class="overflow-hidden bg-white dark:bg-gray-800 shadow-sm sm:rounded-lg"
+                >
                     <div class="p-6">
                         <div class="flex justify-between items-center mb-6">
-                            <h3 class="text-xl font-semibold">
+                            <h3
+                                class="text-xl font-semibold dark:text-gray-200"
+                            >
                                 System Activity Log
                             </h3>
-                            <button
-                                @click="refreshTable"
-                                class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-2 rounded flex items-center gap-1"
-                                title="Refresh data"
-                            >
+                            <InfoButton @click="refreshTable">
                                 <ArrowPathIcon class="h-5 w-5" />
                                 <span>Refresh</span>
-                            </button>
+                            </InfoButton>
                         </div>
 
                         <vue-good-table
                             :key="tableKey"
                             :columns="columns"
                             :rows="tableData"
-                            theme="polar-bear"
+                            :theme="tableTheme"
                             :search-options="{
                                 enabled: true,
                                 placeholder: 'Search activity logs...',
@@ -191,16 +240,24 @@ const showLogDetails = (params) => {
                             }"
                             styleClass="vgt-table bordered striped hover"
                             @row-click="showLogDetails"
-                            row-style-class="cursor-pointer hover:bg-gray-50"
+                            :row-style-class="
+                                isDarkMode
+                                    ? 'cursor-pointer hover:bg-gray-700'
+                                    : 'cursor-pointer hover:bg-gray-50'
+                            "
                         >
                             <template #emptystate>
-                                <div class="text-center p-4 text-gray-500">
+                                <div
+                                    class="text-center p-4 text-gray-500 dark:text-gray-400"
+                                >
                                     No activity logs found.
                                 </div>
                             </template>
                         </vue-good-table>
 
-                        <div class="mt-4 text-sm text-gray-500 italic">
+                        <div
+                            class="mt-4 text-sm text-gray-500 dark:text-gray-400 italic"
+                        >
                             Click on any row to view detailed information.
                         </div>
                     </div>
@@ -213,27 +270,12 @@ const showLogDetails = (params) => {
             v-if="loading"
             class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
         >
-            <div class="bg-white p-4 rounded shadow flex items-center gap-2">
-                <svg
-                    class="animate-spin h-5 w-5 text-indigo-600"
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                >
-                    <circle
-                        class="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        stroke-width="4"
-                    ></circle>
-                    <path
-                        class="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                    ></path>
-                </svg>
+            <div
+                class="bg-white dark:bg-gray-800 p-4 rounded shadow flex items-center gap-2 dark:text-gray-200"
+            >
+                <ArrowPathIcon
+                    class="h-5 w-5 text-indigo-600 dark:text-amber-500 animate-spin"
+                />
                 Processing...
             </div>
         </div>
@@ -248,15 +290,17 @@ const showLogDetails = (params) => {
                 <div class="flex items-center justify-between mb-4">
                     <div class="flex items-center gap-2">
                         <DocumentMagnifyingGlassIcon
-                            class="h-6 w-6 text-blue-500"
+                            class="h-6 w-6 text-blue-500 dark:text-blue-400"
                         />
-                        <h2 class="text-lg font-medium text-gray-900">
+                        <h2
+                            class="text-lg font-medium text-gray-900 dark:text-gray-200"
+                        >
                             Log Details
                         </h2>
                     </div>
                     <button
                         @click="showDetailsModal = false"
-                        class="text-gray-400 hover:text-gray-500"
+                        class="text-gray-400 hover:text-gray-500 dark:text-gray-500 dark:hover:text-gray-400"
                     >
                         <span class="sr-only">Close</span>
                         <svg
@@ -278,18 +322,26 @@ const showLogDetails = (params) => {
                 <div v-if="currentLog" class="mt-2 space-y-4">
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                            <h3 class="text-sm font-medium text-gray-500">
+                            <h3
+                                class="text-sm font-medium text-gray-500 dark:text-gray-400"
+                            >
                                 Description
                             </h3>
-                            <p class="mt-1 text-sm text-gray-900">
+                            <p
+                                class="mt-1 text-sm text-gray-900 dark:text-gray-200"
+                            >
                                 {{ currentLog.description }}
                             </p>
                         </div>
                         <div>
-                            <h3 class="text-sm font-medium text-gray-500">
+                            <h3
+                                class="text-sm font-medium text-gray-500 dark:text-gray-400"
+                            >
                                 Event
                             </h3>
-                            <p class="mt-1 text-sm text-gray-900">
+                            <p
+                                class="mt-1 text-sm text-gray-900 dark:text-gray-200"
+                            >
                                 {{
                                     currentLog.event
                                         ? currentLog.event
@@ -301,23 +353,31 @@ const showLogDetails = (params) => {
                             </p>
                         </div>
                         <div>
-                            <h3 class="text-sm font-medium text-gray-500">
+                            <h3
+                                class="text-sm font-medium text-gray-500 dark:text-gray-400"
+                            >
                                 User
                             </h3>
-                            <p class="mt-1 text-sm text-gray-900">
+                            <p
+                                class="mt-1 text-sm text-gray-900 dark:text-gray-200"
+                            >
                                 {{ currentLog.causer_name || "System" }}
                                 <span
                                     v-if="currentLog.causer_email"
-                                    class="text-gray-500"
+                                    class="text-gray-500 dark:text-gray-400"
                                     >({{ currentLog.causer_email }})</span
                                 >
                             </p>
                         </div>
                         <div>
-                            <h3 class="text-sm font-medium text-gray-500">
+                            <h3
+                                class="text-sm font-medium text-gray-500 dark:text-gray-400"
+                            >
                                 Date & Time
                             </h3>
-                            <p class="mt-1 text-sm text-gray-900">
+                            <p
+                                class="mt-1 text-sm text-gray-900 dark:text-gray-200"
+                            >
                                 {{
                                     new Date(
                                         currentLog.created_at
@@ -326,10 +386,14 @@ const showLogDetails = (params) => {
                             </p>
                         </div>
                         <div>
-                            <h3 class="text-sm font-medium text-gray-500">
+                            <h3
+                                class="text-sm font-medium text-gray-500 dark:text-gray-400"
+                            >
                                 Subject Type
                             </h3>
-                            <p class="mt-1 text-sm text-gray-900">
+                            <p
+                                class="mt-1 text-sm text-gray-900 dark:text-gray-200"
+                            >
                                 {{
                                     currentLog.subject_type
                                         ? currentLog.subject_type
@@ -340,21 +404,27 @@ const showLogDetails = (params) => {
                             </p>
                         </div>
                         <div>
-                            <h3 class="text-sm font-medium text-gray-500">
+                            <h3
+                                class="text-sm font-medium text-gray-500 dark:text-gray-400"
+                            >
                                 Subject ID
                             </h3>
-                            <p class="mt-1 text-sm text-gray-900">
+                            <p
+                                class="mt-1 text-sm text-gray-900 dark:text-gray-200"
+                            >
                                 {{ currentLog.subject_id || "n/a" }}
                             </p>
                         </div>
                     </div>
 
                     <div>
-                        <h3 class="text-sm font-medium text-gray-500 mb-2">
+                        <h3
+                            class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2"
+                        >
                             Properties
                         </h3>
                         <div
-                            class="bg-gray-50 p-4 rounded-md overflow-auto max-h-80 text-sm font-mono"
+                            class="bg-gray-50 dark:bg-gray-700 p-4 rounded-md overflow-auto max-h-80 text-sm font-mono dark:text-gray-200"
                         >
                             <pre>{{
                                 formatProperties(currentLog.full_properties)
@@ -363,18 +433,21 @@ const showLogDetails = (params) => {
                     </div>
                 </div>
 
-                <div v-else class="text-center py-6 text-gray-500">
+                <div
+                    v-else
+                    class="text-center py-6 text-gray-500 dark:text-gray-400"
+                >
                     No log details available
                 </div>
 
                 <div class="mt-6 flex justify-end">
-                    <button
+                    <DangerButton
+                        class="mr-3"
                         type="button"
                         @click="showDetailsModal = false"
-                        class="bg-white py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
                     >
                         Close
-                    </button>
+                    </DangerButton>
                 </div>
             </div>
         </Modal>

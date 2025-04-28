@@ -1,7 +1,14 @@
 <script setup>
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout.vue";
 import { Head } from "@inertiajs/vue3";
-import { ref, onMounted, watch, nextTick } from "vue";
+import {
+    ref,
+    onMounted,
+    watch,
+    nextTick,
+    computed,
+    onBeforeUnmount,
+} from "vue";
 import { router } from "@inertiajs/vue3";
 import Modal from "@/Components/Modal.vue";
 import { useToast } from "vue-toastification";
@@ -14,6 +21,11 @@ import {
     TrashIcon,
     ArrowPathIcon,
 } from "@heroicons/vue/24/outline";
+import InfoButton from "@/Components/InfoButton.vue";
+import SuccessButton from "@/Components/SuccessButton.vue";
+import DangerButton from "@/Components/DangerButton.vue";
+import InputLabel from "@/Components/InputLabel.vue";
+import TextInput from "@/Components/TextInput.vue";
 
 // Define props
 const props = defineProps({
@@ -38,6 +50,59 @@ const currentMenu = ref(null);
 const tableKey = ref(0);
 const titleInputAdd = ref(null);
 const titleInputEdit = ref(null);
+
+// Dark mode detection
+const isDarkMode = ref(false);
+
+// Update the isDarkMode value and re-render the table when dark mode changes
+const updateDarkModeState = () => {
+    if (typeof document !== "undefined") {
+        isDarkMode.value = document.documentElement.classList.contains("dark");
+        // Force table to re-render when theme changes
+        tableKey.value++;
+    }
+};
+
+// Compute table theme based on dark mode
+const tableTheme = computed(() => {
+    return isDarkMode.value ? "nocturnal" : "polar-bear";
+});
+
+// Set up MutationObserver to detect dark mode changes
+let observer;
+onMounted(() => {
+    // Set initial dark mode state
+    updateDarkModeState();
+
+    // Set up observer to watch for dark mode class changes
+    if (typeof document !== "undefined") {
+        observer = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+                if (mutation.attributeName === "class") {
+                    updateDarkModeState();
+                }
+            });
+        });
+
+        // Start observing the document root for class changes
+        observer.observe(document.documentElement, {
+            attributes: true,
+            attributeFilter: ["class"],
+        });
+    }
+
+    // Initialize table data
+    tableData.value = Array.isArray(props.menus)
+        ? props.menus
+        : Object.values(props.menus);
+});
+
+// Clean up observer when component is destroyed
+onBeforeUnmount(() => {
+    if (observer) {
+        observer.disconnect();
+    }
+});
 
 const vFocus = {
     mounted: (el) => el.focus(),
@@ -90,13 +155,6 @@ const columns = [
         width: "150px",
     },
 ];
-
-// Initialize table data
-onMounted(() => {
-    tableData.value = Array.isArray(props.menus)
-        ? props.menus
-        : Object.values(props.menus);
-});
 
 // Watch for modal state changes
 watch(
@@ -239,8 +297,9 @@ const refreshTable = () => {
             tableData.value = Array.isArray(page.props.menus)
                 ? page.props.menus
                 : Object.values(page.props.menus);
-            tableKey.value++; // Force table re-render
+            tableKey.value++;
             loading.value = false;
+            toast.info("Menu is refreshed!");
         },
         onError: (errors) => {
             console.error("Error refreshing data:", errors);
@@ -255,24 +314,32 @@ const refreshTable = () => {
 
     <AuthenticatedLayout>
         <template #header>
-            <h2 class="text-xl font-semibold leading-tight text-gray-800">
+            <h2
+                class="text-xl font-semibold leading-tight text-gray-800 dark:text-gray-200"
+            >
                 Menu
             </h2>
         </template>
 
         <div class="py-12">
             <div class="mx-auto max-w-7xl sm:px-6 lg:px-8">
-                <div class="overflow-hidden bg-white shadow-sm sm:rounded-lg">
+                <div
+                    class="overflow-hidden bg-white dark:bg-gray-800 shadow-sm sm:rounded-lg"
+                >
                     <div class="p-6">
                         <div class="flex justify-center items-center mb-6">
-                            <h3 class="text-xl font-semibold">Menu List</h3>
+                            <h3
+                                class="text-xl font-semibold dark:text-gray-200"
+                            >
+                                Menu List
+                            </h3>
                         </div>
 
                         <vue-good-table
                             :key="tableKey"
                             :columns="columns"
                             :rows="tableData"
-                            theme="polar-bear"
+                            :theme="tableTheme"
                             :search-options="{
                                 enabled: true,
                                 placeholder: 'Search menu items...',
@@ -293,22 +360,15 @@ const refreshTable = () => {
                             styleClass="vgt-table bordered striped"
                         >
                             <template #table-actions>
-                                <div class="flex gap-2">
-                                    <button
-                                        class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded flex items-center gap-1"
-                                        @click="openModal('add')"
-                                    >
+                                <div class="flex gap-2 mr-2 items-center">
+                                    <SuccessButton @click="openModal('add')">
                                         <PlusIcon class="h-5 w-5" />
                                         <span>Add Menu</span>
-                                    </button>
-                                    <button
-                                        @click="refreshTable"
-                                        class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-2 rounded flex items-center gap-1"
-                                        title="Refresh data"
-                                    >
+                                    </SuccessButton>
+                                    <InfoButton @click="refreshTable">
                                         <ArrowPathIcon class="h-5 w-5" />
                                         <span>Refresh</span>
-                                    </button>
+                                    </InfoButton>
                                 </div>
                             </template>
                             <template #table-row="props">
@@ -318,7 +378,7 @@ const refreshTable = () => {
                                 >
                                     <button
                                         @click="openModal('edit', props.row)"
-                                        class="text-blue-500 hover:text-blue-700 bg-blue-100 hover:bg-blue-200 px-3 py-1 rounded flex items-center gap-1"
+                                        class="text-blue-500 hover:text-blue-700 bg-blue-100 hover:bg-blue-200 dark:text-blue-400 dark:hover:text-blue-300 dark:bg-gray-700 dark:hover:bg-gray-600 px-3 py-1 rounded flex items-center gap-1"
                                         title="Edit menu item"
                                     >
                                         <PencilSquareIcon class="h-4 w-4" />
@@ -326,7 +386,7 @@ const refreshTable = () => {
                                     </button>
                                     <button
                                         @click="openModal('delete', props.row)"
-                                        class="text-red-500 hover:text-red-700 bg-red-100 hover:bg-red-200 px-3 py-1 rounded flex items-center gap-1"
+                                        class="text-red-500 hover:text-red-700 bg-red-100 hover:bg-red-200 dark:text-red-400 dark:hover:text-red-300 dark:bg-gray-700 dark:hover:bg-gray-600 px-3 py-1 rounded flex items-center gap-1"
                                         title="Delete menu item"
                                     >
                                         <TrashIcon class="h-4 w-4" />
@@ -338,7 +398,9 @@ const refreshTable = () => {
                                 </span>
                             </template>
                             <template #emptystate>
-                                <div class="text-center p-4 text-gray-500">
+                                <div
+                                    class="text-center p-4 text-gray-500 dark:text-gray-400"
+                                >
                                     No menu items found. Click "Add Menu" to
                                     create one.
                                 </div>
@@ -354,27 +416,12 @@ const refreshTable = () => {
             v-if="loading"
             class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
         >
-            <div class="bg-white p-4 rounded shadow flex items-center gap-2">
-                <svg
-                    class="animate-spin h-5 w-5 text-indigo-600"
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                >
-                    <circle
-                        class="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        stroke-width="4"
-                    ></circle>
-                    <path
-                        class="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                    ></path>
-                </svg>
+            <div
+                class="bg-white dark:bg-gray-800 p-4 rounded shadow flex items-center gap-2 dark:text-gray-200"
+            >
+                <ArrowPathIcon
+                    class="h-5 w-5 text-indigo-600 dark:text-amber-500 animate-spin"
+                />
                 Processing...
             </div>
         </div>
@@ -383,72 +430,67 @@ const refreshTable = () => {
         <Modal :show="modals.add" @close="modals.add = false" max-width="md">
             <div class="p-6">
                 <div class="flex items-center gap-2">
-                    <PlusIcon class="h-6 w-6 text-green-500" />
-                    <h2 class="text-lg font-medium text-gray-900">
+                    <PlusIcon
+                        class="h-6 w-6 text-green-500 dark:text-green-400"
+                    />
+                    <h2
+                        class="text-lg font-medium text-gray-900 dark:text-gray-200"
+                    >
                         Add New Menu
                     </h2>
                 </div>
 
                 <div class="mt-6">
                     <div class="mb-4">
-                        <label
-                            for="title"
-                            class="block text-sm font-medium text-gray-700"
-                            >Title</label
-                        >
-                        <input
-                            type="text"
+                        <InputLabel for="title" value="Title" />
+                        <TextInput
                             id="title"
+                            type="text"
                             ref="titleInputAdd"
+                            class="mt-1 block w-full"
                             v-model="formData.title"
-                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+                            required
                             v-focus
                         />
                     </div>
                     <div class="mb-4">
-                        <label
-                            for="route"
-                            class="block text-sm font-medium text-gray-700"
-                            >Route</label
-                        >
-                        <input
-                            type="text"
+                        <InputLabel for="route" value="Route" />
+                        <TextInput
                             id="route"
+                            type="text"
                             v-model="formData.route"
-                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+                            class="mt-1 block w-full"
+                            required
                         />
                     </div>
                     <div class="mb-4">
-                        <label
-                            for="url"
-                            class="block text-sm font-medium text-gray-700"
-                            >URL</label
-                        >
-                        <input
-                            type="text"
+                        <InputLabel for="url" value="URL" />
+                        <TextInput
                             id="url"
+                            type="text"
                             v-model="formData.url"
-                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+                            class="mt-1 block w-full"
+                            required
                         />
                     </div>
                 </div>
 
                 <div class="mt-6 flex justify-end">
-                    <button
+                    <DangerButton
+                        class="mr-3"
                         type="button"
                         @click="modals.add = false"
-                        class="bg-white py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 mr-2 flex items-center gap-1"
                     >
                         Cancel
-                    </button>
-                    <button
+                    </DangerButton>
+                    <SuccessButton
+                        class="mr-3"
                         type="button"
                         @click="handleSubmit('add')"
-                        class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 items-center gap-1"
                     >
                         <PlusIcon class="h-4 w-4" />
                         Save
-                    </button>
+                    </SuccessButton>
                 </div>
             </div>
         </Modal>
@@ -457,70 +499,65 @@ const refreshTable = () => {
         <Modal :show="modals.edit" @close="modals.edit = false" max-width="md">
             <div class="p-6">
                 <div class="flex items-center gap-2">
-                    <PencilSquareIcon class="h-6 w-6 text-blue-500" />
-                    <h2 class="text-lg font-medium text-gray-900">Edit Menu</h2>
+                    <PencilSquareIcon
+                        class="h-6 w-6 text-blue-500 dark:text-blue-400"
+                    />
+                    <h2
+                        class="text-lg font-medium text-gray-900 dark:text-gray-200"
+                    >
+                        Edit Menu
+                    </h2>
                 </div>
 
                 <div class="mt-6">
                     <div class="mb-4">
-                        <label
-                            for="edit-title"
-                            class="block text-sm font-medium text-gray-700"
-                            >Title</label
-                        >
-                        <input
-                            type="text"
+                        <InputLabel for="edit-title" value="Title" />
+                        <TextInput
                             id="edit-title"
+                            type="text"
                             ref="titleInputEdit"
                             v-model="formData.title"
-                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+                            class="mt-1 block w-full"
                             v-focus
                         />
                     </div>
                     <div class="mb-4">
-                        <label
-                            for="edit-route"
-                            class="block text-sm font-medium text-gray-700"
-                            >Route</label
-                        >
-                        <input
-                            type="text"
+                        <InputLabel for="edit-route" value="Route" />
+                        <TextInput
                             id="edit-route"
+                            type="text"
                             v-model="formData.route"
-                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+                            class="mt-1 block w-full"
                         />
                     </div>
                     <div class="mb-4">
-                        <label
-                            for="edit-url"
-                            class="block text-sm font-medium text-gray-700"
-                            >URL</label
-                        >
-                        <input
-                            type="text"
+                        <InputLabel for="edit-url" value="URL" />
+                        <TextInput
                             id="edit-url"
+                            type="text"
                             v-model="formData.url"
-                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+                            class="mt-1 block w-full"
                         />
                     </div>
                 </div>
 
                 <div class="mt-6 flex justify-end">
-                    <button
+                    <DangerButton
+                        class="mr-3"
                         type="button"
                         @click="modals.edit = false"
-                        class="bg-white py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 mr-2"
                     >
                         Cancel
-                    </button>
-                    <button
+                    </DangerButton>
+
+                    <SuccessButton
+                        class="mr-3"
                         type="button"
                         @click="handleSubmit('edit')"
-                        class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 items-center gap-1"
                     >
                         <PencilSquareIcon class="h-4 w-4" />
                         Update
-                    </button>
+                    </SuccessButton>
                 </div>
             </div>
         </Modal>
@@ -533,14 +570,16 @@ const refreshTable = () => {
         >
             <div class="p-6">
                 <div class="flex items-center gap-2">
-                    <TrashIcon class="h-6 w-6 text-red-500" />
-                    <h2 class="text-lg font-medium text-gray-900">
+                    <TrashIcon class="h-6 w-6 text-red-500 dark:text-red-400" />
+                    <h2
+                        class="text-lg font-medium text-gray-900 dark:text-gray-200"
+                    >
                         Delete Menu
                     </h2>
                 </div>
 
                 <div class="mt-4">
-                    <p class="text-sm text-gray-600">
+                    <p class="text-sm text-gray-600 dark:text-gray-400">
                         Are you sure you want to delete "{{
                             currentMenu?.title
                         }}"? This action cannot be undone.
@@ -548,21 +587,22 @@ const refreshTable = () => {
                 </div>
 
                 <div class="mt-6 flex justify-end">
-                    <button
+                    <DangerButton
+                        class="mr-3"
                         type="button"
                         @click="modals.delete = false"
-                        class="bg-white py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 mr-2"
                     >
                         Cancel
-                    </button>
-                    <button
+                    </DangerButton>
+
+                    <SuccessButton
+                        class="mr-3"
                         type="button"
                         @click="handleSubmit('delete')"
-                        class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 items-center gap-1"
                     >
                         <TrashIcon class="h-4 w-4" />
                         Delete
-                    </button>
+                    </SuccessButton>
                 </div>
             </div>
         </Modal>

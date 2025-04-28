@@ -8,6 +8,14 @@
     <title inertia>{{ config('app.name', 'Laravel') }}</title>
     <link rel="shortcut icon" href="/favicon.svg" type="image/svg+xml" />
 
+    <script>
+        if (localStorage.getItem('darkMode') === 'dark' || 
+            (!localStorage.getItem('darkMode') && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark');
+        } else {
+            document.documentElement.classList.remove('dark')
+        }
+    </script>
 
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.bunny.net">
