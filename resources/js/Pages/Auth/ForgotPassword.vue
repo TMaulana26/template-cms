@@ -5,6 +5,7 @@ import InputLabel from "@/Components/InputLabel.vue";
 import PrimaryButton from "@/Components/PrimaryButton.vue";
 import TextInput from "@/Components/TextInput.vue";
 import { Head, useForm } from "@inertiajs/vue3";
+import { trans } from "laravel-vue-i18n";
 
 defineProps({
     status: {
@@ -19,28 +20,32 @@ const form = useForm({
 const submit = () => {
     form.post(route("password.email"));
 };
+
+const translateStatus = (status) => {
+    const translation = trans(`pages.auth.statuses.${status}`);
+    
+    return translation !== `pages.auth.statuses.${status}` ? translation : status;
+};
 </script>
 
 <template>
     <GuestLayout>
-        <Head title="Forgot Password" />
+        <Head :title="$t('pages.auth.Forgot_Password')" />
 
         <div class="mb-4 text-sm text-gray-600 dark:text-gray-400">
-            Forgot your password? No problem. Just let us know your email
-            address and we will email you a password reset link that will allow
-            you to choose a new one.
+            {{ $t("pages.auth.Forgot_Password_Desc") }}
         </div>
 
         <div
             v-if="status"
             class="mb-4 text-sm font-medium text-green-600 dark:text-green-400"
         >
-            {{ status }}
+            {{ translateStatus(status) }}
         </div>
 
         <form @submit.prevent="submit">
             <div>
-                <InputLabel for="email" value="Email" />
+                <InputLabel for="email" :value="$t('pages.auth.Email_password')" />
 
                 <TextInput
                     id="email"
@@ -60,7 +65,7 @@ const submit = () => {
                     :class="{ 'opacity-25': form.processing }"
                     :disabled="form.processing"
                 >
-                    Email Password Reset Link
+                    {{ $t("pages.auth.Email_Reset_Link") }}
                 </PrimaryButton>
             </div>
         </form>

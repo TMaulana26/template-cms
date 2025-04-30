@@ -14,6 +14,7 @@ import {
 import Modal from "@/Components/Modal.vue";
 import InfoButton from "@/Components/InfoButton.vue";
 import DangerButton from "@/Components/DangerButton.vue";
+import { trans } from "laravel-vue-i18n";
 
 // Define props
 const props = defineProps({
@@ -50,19 +51,19 @@ const tableTheme = computed(() => {
 });
 
 // Table columns configuration
-const columns = [
+const columns = computed(() => [
     {
-        label: "Description",
+        label: trans("pages.activity_log.Description"),
         field: "description",
         sortable: true,
     },
     {
-        label: "User",
+        label: trans("pages.activity_log.User"),
         field: "causer_name",
         sortable: true,
     },
     {
-        label: "Action Type",
+        label: trans("pages.activity_log.Action_Type"),
         field: "event",
         sortable: true,
         formatFn: (value) => {
@@ -70,7 +71,7 @@ const columns = [
         },
     },
     {
-        label: "Subject",
+        label: trans("pages.activity_log.Subject"),
         field: "subject_type",
         sortable: true,
         formatFn: (value) => {
@@ -79,7 +80,7 @@ const columns = [
         },
     },
     {
-        label: "Date & Time",
+        label: trans("pages.activity_log.Date_Time"),
         field: "created_at",
         sortable: true,
         sortFn: (date) => new Date(date).getTime(),
@@ -87,7 +88,7 @@ const columns = [
             return new Date(value).toLocaleString();
         },
     },
-];
+]);
 
 // Format activity log data for the table
 const formatLogData = (logs) => {
@@ -97,7 +98,9 @@ const formatLogData = (logs) => {
         return {
             id: log.id,
             description: log.description,
-            causer_name: log.causer ? log.causer.name : "System",
+            causer_name: log.causer
+                ? log.causer.name
+                : trans("pages.activity_log.System"),
             causer_email: log.causer ? log.causer.email : "",
             event: log.event || "",
             log_name: log.log_name,
@@ -153,11 +156,11 @@ const refreshTable = () => {
             tableData.value = formatLogData(page.props.logs);
             tableKey.value++; // Force table re-render
             loading.value = false;
-            toast.info("Activity log is refreshed!");
+            toast.info(trans("pages.activity_log.Activity_log_refreshed"));
         },
         onError: (errors) => {
             console.error("Error refreshing data:", errors);
-            toast.error("Failed to refresh activity log data.");
+            toast.error(trans("pages.activity_log.Failed_to_refresh"));
             loading.value = false;
         },
     });
@@ -165,7 +168,7 @@ const refreshTable = () => {
 
 // Function to display formatted properties
 const formatProperties = (properties) => {
-    if (!properties) return "No details available";
+    if (!properties) return trans("pages.activity_log.No_details");
 
     try {
         const obj =
@@ -184,17 +187,34 @@ const showLogDetails = (params) => {
     currentLog.value = row;
     showDetailsModal.value = true;
 };
+
+// Pagination options with translations
+const paginationOptions = computed(() => {
+    return {
+        enabled: true,
+        perPage: 15,
+        perPageDropdown: [10, 15, 20, 50],
+        dropdownAllowAll: true,
+        setCurrentPage: 1,
+        nextLabel: trans("pages.activity_log.Next"),
+        prevLabel: trans("pages.activity_log.Prev"),
+        rowsPerPageLabel: trans("pages.activity_log.Logs_per_page"),
+        ofLabel: trans("pages.activity_log.of"),
+        pageLabel: trans("pages.activity_log.page"),
+        allLabel: trans("pages.activity_log.All"),
+    };
+});
 </script>
 
 <template>
-    <Head title="Activity Log" />
+    <Head :title="$t('pages.activity_log.Activity_Log')" />
 
     <AuthenticatedLayout>
         <template #header>
             <h2
                 class="text-xl font-semibold leading-tight text-gray-800 dark:text-gray-200"
             >
-                Activity Log
+                {{ $t("pages.activity_log.Activity_Log") }}
             </h2>
         </template>
 
@@ -208,11 +228,15 @@ const showLogDetails = (params) => {
                             <h3
                                 class="text-xl font-semibold dark:text-gray-200"
                             >
-                                System Activity Log
+                                {{
+                                    $t("pages.activity_log.System_Activity_Log")
+                                }}
                             </h3>
                             <InfoButton @click="refreshTable">
                                 <ArrowPathIcon class="h-5 w-5" />
-                                <span>Refresh</span>
+                                <span>{{
+                                    $t("pages.activity_log.Refresh")
+                                }}</span>
                             </InfoButton>
                         </div>
 
@@ -223,21 +247,11 @@ const showLogDetails = (params) => {
                             :theme="tableTheme"
                             :search-options="{
                                 enabled: true,
-                                placeholder: 'Search activity logs...',
+                                placeholder: $t(
+                                    'pages.activity_log.Search_logs'
+                                ),
                             }"
-                            :pagination-options="{
-                                enabled: true,
-                                perPage: 15,
-                                perPageDropdown: [10, 15, 20, 50],
-                                dropdownAllowAll: true,
-                                setCurrentPage: 1,
-                                nextLabel: 'Next',
-                                prevLabel: 'Prev',
-                                rowsPerPageLabel: 'Logs per page',
-                                ofLabel: 'of',
-                                pageLabel: 'page',
-                                allLabel: 'All',
-                            }"
+                            :pagination-options="paginationOptions"
                             styleClass="vgt-table bordered striped hover"
                             @row-click="showLogDetails"
                             :row-style-class="
@@ -250,15 +264,15 @@ const showLogDetails = (params) => {
                                 <div
                                     class="text-center p-4 text-gray-500 dark:text-gray-400"
                                 >
-                                    No activity logs found.
+                                    {{ $t("pages.activity_log.No_logs_found") }}
                                 </div>
                             </template>
                         </vue-good-table>
 
                         <div
-                            class="mt-4 text-sm text-gray-500 dark:text-gray-400 italic"
+                            class="mt-4 text-sm text-indigo-500 dark:text-amber-400 italic"
                         >
-                            Click on any row to view detailed information.
+                            {{ $t("pages.activity_log.Click_row_details") }}
                         </div>
                     </div>
                 </div>
@@ -276,7 +290,7 @@ const showLogDetails = (params) => {
                 <ArrowPathIcon
                     class="h-5 w-5 text-indigo-600 dark:text-amber-500 animate-spin"
                 />
-                Processing...
+                {{ $t("pages.activity_log.Processing") }}
             </div>
         </div>
 
@@ -295,14 +309,16 @@ const showLogDetails = (params) => {
                         <h2
                             class="text-lg font-medium text-gray-900 dark:text-gray-200"
                         >
-                            Log Details
+                            {{ $t("pages.activity_log.Log_Details") }}
                         </h2>
                     </div>
                     <button
                         @click="showDetailsModal = false"
                         class="text-gray-400 hover:text-gray-500 dark:text-gray-500 dark:hover:text-gray-400"
                     >
-                        <span class="sr-only">Close</span>
+                        <span class="sr-only">{{
+                            $t("pages.activity_log.Close")
+                        }}</span>
                         <svg
                             class="h-6 w-6"
                             fill="none"
@@ -325,7 +341,7 @@ const showLogDetails = (params) => {
                             <h3
                                 class="text-sm font-medium text-gray-500 dark:text-gray-400"
                             >
-                                Description
+                                {{ $t("pages.activity_log.Description") }}
                             </h3>
                             <p
                                 class="mt-1 text-sm text-gray-900 dark:text-gray-200"
@@ -337,7 +353,7 @@ const showLogDetails = (params) => {
                             <h3
                                 class="text-sm font-medium text-gray-500 dark:text-gray-400"
                             >
-                                Event
+                                {{ $t("pages.activity_log.Event") }}
                             </h3>
                             <p
                                 class="mt-1 text-sm text-gray-900 dark:text-gray-200"
@@ -348,7 +364,7 @@ const showLogDetails = (params) => {
                                               .charAt(0)
                                               .toUpperCase() +
                                           currentLog.event.slice(1)
-                                        : "n/a"
+                                        : $t("pages.activity_log.NA")
                                 }}
                             </p>
                         </div>
@@ -356,12 +372,15 @@ const showLogDetails = (params) => {
                             <h3
                                 class="text-sm font-medium text-gray-500 dark:text-gray-400"
                             >
-                                User
+                                {{ $t("pages.activity_log.User") }}
                             </h3>
                             <p
                                 class="mt-1 text-sm text-gray-900 dark:text-gray-200"
                             >
-                                {{ currentLog.causer_name || "System" }}
+                                {{
+                                    currentLog.causer_name ||
+                                    $t("pages.activity_log.System")
+                                }}
                                 <span
                                     v-if="currentLog.causer_email"
                                     class="text-gray-500 dark:text-gray-400"
@@ -373,7 +392,7 @@ const showLogDetails = (params) => {
                             <h3
                                 class="text-sm font-medium text-gray-500 dark:text-gray-400"
                             >
-                                Date & Time
+                                {{ $t("pages.activity_log.Date_Time") }}
                             </h3>
                             <p
                                 class="mt-1 text-sm text-gray-900 dark:text-gray-200"
@@ -389,7 +408,7 @@ const showLogDetails = (params) => {
                             <h3
                                 class="text-sm font-medium text-gray-500 dark:text-gray-400"
                             >
-                                Subject Type
+                                {{ $t("pages.activity_log.Subject_Type") }}
                             </h3>
                             <p
                                 class="mt-1 text-sm text-gray-900 dark:text-gray-200"
@@ -399,7 +418,7 @@ const showLogDetails = (params) => {
                                         ? currentLog.subject_type
                                               .split("\\")
                                               .pop()
-                                        : "n/a"
+                                        : $t("pages.activity_log.NA")
                                 }}
                             </p>
                         </div>
@@ -407,12 +426,15 @@ const showLogDetails = (params) => {
                             <h3
                                 class="text-sm font-medium text-gray-500 dark:text-gray-400"
                             >
-                                Subject ID
+                                {{ $t("pages.activity_log.Subject_ID") }}
                             </h3>
                             <p
                                 class="mt-1 text-sm text-gray-900 dark:text-gray-200"
                             >
-                                {{ currentLog.subject_id || "n/a" }}
+                                {{
+                                    currentLog.subject_id ||
+                                    $t("pages.activity_log.NA")
+                                }}
                             </p>
                         </div>
                     </div>
@@ -421,7 +443,7 @@ const showLogDetails = (params) => {
                         <h3
                             class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2"
                         >
-                            Properties
+                            {{ $t("pages.activity_log.Properties") }}
                         </h3>
                         <div
                             class="bg-gray-50 dark:bg-gray-700 p-4 rounded-md overflow-auto max-h-80 text-sm font-mono dark:text-gray-200"
@@ -437,7 +459,7 @@ const showLogDetails = (params) => {
                     v-else
                     class="text-center py-6 text-gray-500 dark:text-gray-400"
                 >
-                    No log details available
+                    {{ $t("pages.activity_log.No_log_details") }}
                 </div>
 
                 <div class="mt-6 flex justify-end">
@@ -446,7 +468,7 @@ const showLogDetails = (params) => {
                         type="button"
                         @click="showDetailsModal = false"
                     >
-                        Close
+                        {{ $t("pages.activity_log.Close") }}
                     </DangerButton>
                 </div>
             </div>

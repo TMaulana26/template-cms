@@ -6,6 +6,8 @@ import InputLabel from "@/Components/InputLabel.vue";
 import PrimaryButton from "@/Components/PrimaryButton.vue";
 import TextInput from "@/Components/TextInput.vue";
 import { Head, Link, useForm } from "@inertiajs/vue3";
+import { trans } from "laravel-vue-i18n";
+import { computed } from "vue";
 
 defineProps({
     canResetPassword: {
@@ -27,22 +29,40 @@ const submit = () => {
         onFinish: () => form.reset("password"),
     });
 };
+
+// This maps the 'email' error to 'login' so it displays properly
+const loginError = computed(() => {
+    return form.errors.login || form.errors.email;
+});
+
+const translateStatus = (status) => {
+    // Try to get a translation for this status
+    const translation = trans(`pages.auth.statuses.${status}`);
+
+    // Return the translation if it exists, otherwise return the original status
+    return translation !== `pages.auth.statuses.${status}`
+        ? translation
+        : status;
+};
 </script>
 
 <template>
     <GuestLayout>
-        <Head title="Log in" />
+        <Head :title="$t('pages.auth.Login')" />
 
         <div
             v-if="status"
             class="mb-4 text-sm font-medium text-green-600 dark:text-green-400"
         >
-            {{ status }}
+            {{ translateStatus(status) }}
         </div>
 
         <form @submit.prevent="submit">
             <div>
-                <InputLabel for="login" value="Email or Username" />
+                <InputLabel
+                    for="login"
+                    :value="$t('pages.auth.Email_or_Username')"
+                />
 
                 <TextInput
                     id="login"
@@ -54,11 +74,11 @@ const submit = () => {
                     autocomplete="username"
                 />
 
-                <InputError class="mt-2" :message="form.errors.login" />
+                <InputError class="mt-2" :message="loginError" />
             </div>
 
             <div class="mt-4">
-                <InputLabel for="password" value="Password" />
+                <InputLabel for="password" :value="$t('pages.auth.Password')" />
 
                 <TextInput
                     id="password"
@@ -75,8 +95,9 @@ const submit = () => {
             <div class="mt-4 block">
                 <label class="flex items-center">
                     <Checkbox name="remember" v-model:checked="form.remember" />
-                    <span class="ms-2 text-sm text-gray-600 dark:text-gray-400"
-                        >Remember me</span
+                    <span
+                        class="ms-2 text-sm text-gray-600 dark:text-gray-400"
+                        >{{ $t("pages.auth.Remember_me") }}</span
                     >
                 </label>
             </div>
@@ -87,7 +108,7 @@ const submit = () => {
                     :href="route('password.request')"
                     class="rounded-md text-sm text-gray-600 dark:text-gray-400 underline hover:text-indigo-600 dark:hover:text-amber-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:focus:ring-amber-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800"
                 >
-                    Forgot your password?
+                    {{ $t("pages.auth.Forgot_your_password") }}
                 </Link>
 
                 <PrimaryButton
@@ -95,7 +116,7 @@ const submit = () => {
                     :class="{ 'opacity-25': form.processing }"
                     :disabled="form.processing"
                 >
-                    Log in
+                    {{ $t("pages.auth.Login") }}
                 </PrimaryButton>
             </div>
         </form>

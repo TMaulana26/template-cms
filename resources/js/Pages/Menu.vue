@@ -26,6 +26,7 @@ import SuccessButton from "@/Components/SuccessButton.vue";
 import DangerButton from "@/Components/DangerButton.vue";
 import InputLabel from "@/Components/InputLabel.vue";
 import TextInput from "@/Components/TextInput.vue";
+import { trans } from "laravel-vue-i18n";
 
 // Define props
 const props = defineProps({
@@ -122,39 +123,39 @@ const resetForm = () => {
 };
 
 // Table columns configuration
-const columns = [
+const columns = computed(() => [
     {
-        label: "Title",
+        label: trans("pages.menu.Title"),
         field: "title",
         sortable: true,
     },
     {
-        label: "Route",
+        label: trans("pages.menu.Route"),
         field: "route",
         sortable: true,
     },
     {
-        label: "Url",
+        label: trans("pages.menu.Url"),
         field: "url",
         sortable: true,
     },
     {
-        label: "Created At",
+        label: trans("pages.menu.Created_At"),
         field: "created_at",
         sortable: true,
     },
     {
-        label: "Updated At",
+        label: trans("pages.menu.Updated_At"),
         field: "updated_at",
         sortable: true,
     },
     {
-        label: "Actions",
+        label: trans("pages.menu.Actions"),
         field: "actions",
         sortable: false,
         width: "150px",
     },
-];
+]);
 
 // Watch for modal state changes
 watch(
@@ -201,7 +202,7 @@ const handleSubmit = (action) => {
         router.post("/menu", formData.value, {
             onSuccess: () => {
                 modals.value[action] = false;
-                toast.success("Menu created successfully!");
+                toast.success(trans("pages.menu.Menu_created"));
                 refreshTable();
             },
             onError: (errors) => {
@@ -210,7 +211,7 @@ const handleSubmit = (action) => {
 
                 const errorDetails = formatErrorMessage(
                     errors,
-                    "Menu creation failed!"
+                    trans("pages.menu.Menu_creation_failed")
                 );
                 toast.error(errorDetails);
 
@@ -222,7 +223,9 @@ const handleSubmit = (action) => {
             onSuccess: () => {
                 modals.value[action] = false;
                 toast.success(
-                    currentMenu.value.title + " updated successfully!"
+                    currentMenu.value.title +
+                        " " +
+                        trans("pages.menu.updated_successfully")
                 );
                 refreshTable();
             },
@@ -232,7 +235,7 @@ const handleSubmit = (action) => {
 
                 const errorDetails = formatErrorMessage(
                     errors,
-                    "Menu update failed!"
+                    trans("pages.menu.Menu_update_failed")
                 );
                 toast.error(errorDetails, { dangerouslyHTMLString: true });
 
@@ -244,7 +247,9 @@ const handleSubmit = (action) => {
             onSuccess: () => {
                 modals.value[action] = false;
                 toast.success(
-                    currentMenu.value.title + " deleted successfully!"
+                    currentMenu.value.title +
+                        " " +
+                        trans("pages.menu.deleted_successfully")
                 );
                 refreshTable();
             },
@@ -253,7 +258,7 @@ const handleSubmit = (action) => {
 
                 const errorDetails = formatErrorMessage(
                     errors,
-                    "Menu deletion failed!"
+                    trans("pages.menu.Menu_deletion_failed")
                 );
                 toast.error(errorDetails);
 
@@ -299,7 +304,7 @@ const refreshTable = () => {
                 : Object.values(page.props.menus);
             tableKey.value++;
             loading.value = false;
-            toast.info("Menu is refreshed!");
+            toast.info(trans("pages.menu.Menu_refreshed"));
         },
         onError: (errors) => {
             console.error("Error refreshing data:", errors);
@@ -307,17 +312,34 @@ const refreshTable = () => {
         },
     });
 };
+
+// Pagination options with translations
+const paginationOptions = computed(() => {
+    return {
+        enabled: true,
+        perPage: 10,
+        perPageDropdown: [5, 10, 20, 50],
+        dropdownAllowAll: true,
+        setCurrentPage: 1,
+        nextLabel: trans("pages.menu.Next"),
+        prevLabel: trans("pages.menu.Prev"),
+        rowsPerPageLabel: trans("pages.menu.Rows_per_page"),
+        ofLabel: trans("pages.menu.of"),
+        pageLabel: trans("pages.menu.page"),
+        allLabel: trans("pages.menu.All"),
+    };
+});
 </script>
 
 <template>
-    <Head title="Menu" />
+    <Head :title="$t('pages.menu.Menu')" />
 
     <AuthenticatedLayout>
         <template #header>
             <h2
                 class="text-xl font-semibold leading-tight text-gray-800 dark:text-gray-200"
             >
-                Menu
+                {{ $t("pages.menu.Menu") }}
             </h2>
         </template>
 
@@ -331,7 +353,7 @@ const refreshTable = () => {
                             <h3
                                 class="text-xl font-semibold dark:text-gray-200"
                             >
-                                Menu List
+                                {{ $t("pages.menu.Menu_List") }}
                             </h3>
                         </div>
 
@@ -342,32 +364,24 @@ const refreshTable = () => {
                             :theme="tableTheme"
                             :search-options="{
                                 enabled: true,
-                                placeholder: 'Search menu items...',
+                                placeholder: $t('pages.menu.Search_menu_items'),
                             }"
-                            :pagination-options="{
-                                enabled: true,
-                                perPage: 10,
-                                perPageDropdown: [5, 10, 20, 50],
-                                dropdownAllowAll: true,
-                                setCurrentPage: 1,
-                                nextLabel: 'Next',
-                                prevLabel: 'Prev',
-                                rowsPerPageLabel: 'Rows per page',
-                                ofLabel: 'of',
-                                pageLabel: 'page',
-                                allLabel: 'All',
-                            }"
+                            :pagination-options="paginationOptions"
                             styleClass="vgt-table bordered striped"
                         >
                             <template #table-actions>
                                 <div class="flex gap-2 mr-2 items-center">
                                     <SuccessButton @click="openModal('add')">
                                         <PlusIcon class="h-5 w-5" />
-                                        <span>Add Menu</span>
+                                        <span>{{
+                                            $t("pages.menu.Add_Menu")
+                                        }}</span>
                                     </SuccessButton>
                                     <InfoButton @click="refreshTable">
                                         <ArrowPathIcon class="h-5 w-5" />
-                                        <span>Refresh</span>
+                                        <span>{{
+                                            $t("pages.menu.Refresh")
+                                        }}</span>
                                     </InfoButton>
                                 </div>
                             </template>
@@ -379,18 +393,22 @@ const refreshTable = () => {
                                     <button
                                         @click="openModal('edit', props.row)"
                                         class="text-blue-500 hover:text-blue-700 bg-blue-100 hover:bg-blue-200 dark:text-blue-400 dark:hover:text-blue-300 dark:bg-gray-700 dark:hover:bg-gray-600 px-3 py-1 rounded flex items-center gap-1"
-                                        title="Edit menu item"
+                                        :title="$t('pages.menu.Edit_menu_item')"
                                     >
                                         <PencilSquareIcon class="h-4 w-4" />
-                                        <span>Edit</span>
+                                        <span>{{ $t("pages.menu.Edit") }}</span>
                                     </button>
                                     <button
                                         @click="openModal('delete', props.row)"
                                         class="text-red-500 hover:text-red-700 bg-red-100 hover:bg-red-200 dark:text-red-400 dark:hover:text-red-300 dark:bg-gray-700 dark:hover:bg-gray-600 px-3 py-1 rounded flex items-center gap-1"
-                                        title="Delete menu item"
+                                        :title="
+                                            $t('pages.menu.Delete_menu_item')
+                                        "
                                     >
                                         <TrashIcon class="h-4 w-4" />
-                                        <span>Delete</span>
+                                        <span>{{
+                                            $t("pages.menu.Delete")
+                                        }}</span>
                                     </button>
                                 </div>
                                 <span v-else>
@@ -401,8 +419,7 @@ const refreshTable = () => {
                                 <div
                                     class="text-center p-4 text-gray-500 dark:text-gray-400"
                                 >
-                                    No menu items found. Click "Add Menu" to
-                                    create one.
+                                    {{ $t("pages.menu.No_menu_items") }}
                                 </div>
                             </template>
                         </vue-good-table>
@@ -422,7 +439,7 @@ const refreshTable = () => {
                 <ArrowPathIcon
                     class="h-5 w-5 text-indigo-600 dark:text-amber-500 animate-spin"
                 />
-                Processing...
+                {{ $t("pages.menu.Processing") }}
             </div>
         </div>
 
@@ -436,13 +453,16 @@ const refreshTable = () => {
                     <h2
                         class="text-lg font-medium text-gray-900 dark:text-gray-200"
                     >
-                        Add New Menu
+                        {{ $t("pages.menu.Add_New_Menu") }}
                     </h2>
                 </div>
 
                 <div class="mt-6">
                     <div class="mb-4">
-                        <InputLabel for="title" value="Title" />
+                        <InputLabel
+                            for="title"
+                            :value="$t('pages.menu.Title')"
+                        />
                         <TextInput
                             id="title"
                             type="text"
@@ -454,7 +474,10 @@ const refreshTable = () => {
                         />
                     </div>
                     <div class="mb-4">
-                        <InputLabel for="route" value="Route" />
+                        <InputLabel
+                            for="route"
+                            :value="$t('pages.menu.Route')"
+                        />
                         <TextInput
                             id="route"
                             type="text"
@@ -464,7 +487,7 @@ const refreshTable = () => {
                         />
                     </div>
                     <div class="mb-4">
-                        <InputLabel for="url" value="URL" />
+                        <InputLabel for="url" :value="$t('pages.menu.URL')" />
                         <TextInput
                             id="url"
                             type="text"
@@ -481,7 +504,7 @@ const refreshTable = () => {
                         type="button"
                         @click="modals.add = false"
                     >
-                        Cancel
+                        {{ $t("pages.menu.Cancel") }}
                     </DangerButton>
                     <SuccessButton
                         class="mr-3"
@@ -489,7 +512,7 @@ const refreshTable = () => {
                         @click="handleSubmit('add')"
                     >
                         <PlusIcon class="h-4 w-4" />
-                        Save
+                        {{ $t("pages.menu.Save") }}
                     </SuccessButton>
                 </div>
             </div>
@@ -505,13 +528,16 @@ const refreshTable = () => {
                     <h2
                         class="text-lg font-medium text-gray-900 dark:text-gray-200"
                     >
-                        Edit Menu
+                        {{ $t("pages.menu.Edit_Menu") }}
                     </h2>
                 </div>
 
                 <div class="mt-6">
                     <div class="mb-4">
-                        <InputLabel for="edit-title" value="Title" />
+                        <InputLabel
+                            for="edit-title"
+                            :value="$t('pages.menu.Title')"
+                        />
                         <TextInput
                             id="edit-title"
                             type="text"
@@ -522,7 +548,10 @@ const refreshTable = () => {
                         />
                     </div>
                     <div class="mb-4">
-                        <InputLabel for="edit-route" value="Route" />
+                        <InputLabel
+                            for="edit-route"
+                            :value="$t('pages.menu.Route')"
+                        />
                         <TextInput
                             id="edit-route"
                             type="text"
@@ -531,7 +560,10 @@ const refreshTable = () => {
                         />
                     </div>
                     <div class="mb-4">
-                        <InputLabel for="edit-url" value="URL" />
+                        <InputLabel
+                            for="edit-url"
+                            :value="$t('pages.menu.URL')"
+                        />
                         <TextInput
                             id="edit-url"
                             type="text"
@@ -547,7 +579,7 @@ const refreshTable = () => {
                         type="button"
                         @click="modals.edit = false"
                     >
-                        Cancel
+                        {{ $t("pages.menu.Cancel") }}
                     </DangerButton>
 
                     <SuccessButton
@@ -556,7 +588,7 @@ const refreshTable = () => {
                         @click="handleSubmit('edit')"
                     >
                         <PencilSquareIcon class="h-4 w-4" />
-                        Update
+                        {{ $t("pages.menu.Update") }}
                     </SuccessButton>
                 </div>
             </div>
@@ -574,15 +606,17 @@ const refreshTable = () => {
                     <h2
                         class="text-lg font-medium text-gray-900 dark:text-gray-200"
                     >
-                        Delete Menu
+                        {{ $t("pages.menu.Delete_Menu") }}
                     </h2>
                 </div>
 
                 <div class="mt-4">
                     <p class="text-sm text-gray-600 dark:text-gray-400">
-                        Are you sure you want to delete "{{
-                            currentMenu?.title
-                        }}"? This action cannot be undone.
+                        {{
+                            $t("pages.menu.Delete_confirmation", {
+                                name: currentMenu?.title,
+                            })
+                        }}
                     </p>
                 </div>
 
@@ -592,7 +626,7 @@ const refreshTable = () => {
                         type="button"
                         @click="modals.delete = false"
                     >
-                        Cancel
+                        {{ $t("pages.menu.Cancel") }}
                     </DangerButton>
 
                     <SuccessButton
@@ -601,7 +635,7 @@ const refreshTable = () => {
                         @click="handleSubmit('delete')"
                     >
                         <TrashIcon class="h-4 w-4" />
-                        Delete
+                        {{ $t("pages.menu.Delete") }}
                     </SuccessButton>
                 </div>
             </div>

@@ -16,6 +16,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     })->name('dashboard');
 
     Route::resource('menu', MenuController::class);
+    Route::get('/activity-log', [ActivityLogController::class, 'index'])->name('activity-log.index');
+
 });
 
 Route::middleware('auth')->group(function () {
@@ -24,10 +26,14 @@ Route::middleware('auth')->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 
-Route::get('/activity-log', [ActivityLogController::class, 'index'])->name('activity-log.index');
 
-Route::get('/test' , function () {
+Route::get('/test', function () {
     return Inertia::render('Test');
 })->name('test');
+
+Route::get('language/{locale}', function ($locale) {
+    session()->put('locale', $locale);
+    return redirect()->back();
+})->name('language');
 
 require __DIR__ . '/auth.php';
