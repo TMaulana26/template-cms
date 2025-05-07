@@ -27,6 +27,21 @@ Route::middleware('auth')->group(function () {
 });
 
 
+Route::get('/404', function () {
+    $locale = session('locale', config('app.locale'));
+    app()->setLocale($locale);
+
+    return inertia('Errors/NotFound', [
+        'status' => 404,
+        'isAuthenticated' => auth()->check(),
+        'user' => auth()->check() ? [
+            'name' => auth()->user()->name,
+        ] : null,
+    ])
+        ->toResponse(request())
+        ->setStatusCode(404);
+})->name('404');
+
 Route::get('/test', function () {
     return Inertia::render('Test');
 })->name('test');
